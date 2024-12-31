@@ -1,4 +1,3 @@
-
 import os
 from tkinter import Tk, Label, Entry, Button, filedialog, StringVar, messagebox, ttk
 import yt_dlp
@@ -20,20 +19,32 @@ def download_video():
                 return
 
             ydl_opts = {
-                'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),
-                'format': 'bestaudio/best' if file_type == "Audio" else 'bestvideo+bestaudio',
-                'merge_output_format': 'mp4' if file_type == "Video" else None,
-                'postprocessors': [
-                    {
-                        'key': 'FFmpegVideoConvertor',
-                        'preferedformat': 'mp4'
-                    } if file_type == "Video" else {
-                        'key': 'FFmpegExtractAudio',
-                        'preferredcodec': 'mp3',
-                        'preferredquality': '192'
-                    }
-                ]
+                'outtmpl': os.path.join(save_path, '%(title)s.%(ext)s'),  # Output file path
+                'format': 'bestvideo+bestaudio/best' if file_type == "Video" else 'bestaudio/best',  # Select best video+audio for video or best audio for audio
+                'postprocessors': [],  # Start with an empty list
+                'merge_output_format': 'mp4' if file_type == "Video" else None,  # Merge to mp4 for video download
+                'extractaudio': True if file_type == "Audio" else False,  # Force audio extraction for audio downloads
+                'noplaylist': True,  # Avoid playlist download
             }
+
+            # Add postprocessor based on file type
+            if file_type == "Video":
+                ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4'  # Explicitly download mp4 video
+                ydl_opts['postprocessors'].append({
+                    'key': 'FFmpegVideoConvertor',
+                    'preferedformat': 'mp4',  # Convert video to mp4 if downloading video
+                })
+            elif file_type == "Audio":
+                ydl_opts['postprocessors'].append({
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',  # Convert audio to mp3 if downloading audio
+                    'preferredquality': '192',
+                })
+                ydl_opts['postprocessors'].append({
+                    'key': 'FFmpegAudioConvertor',  # Added to handle Opus audio
+                    'preferredcodec': 'mp3',  # Convert Opus to mp3
+                    'preferredquality': '192'
+                })
 
             download_label.config(text="Downloading...")
             progress_var.set(0)
